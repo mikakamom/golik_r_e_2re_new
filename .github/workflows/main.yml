@@ -85,10 +85,25 @@ jobs:
       - name: 更新时间检查文件
         if: always()
         run: |
-          echo "$(date '+%Y-%m-%d %H:%M:%S %Z')" > timecheck.md
+          TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+
+          rm -rf /tmp/timecheck-repo
+
+          git clone \
+            --depth 1 \
+            --branch "$BRANCH" \
+            "https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/$REPO.git" \
+            /tmp/timecheck-repo
+
+          cd /tmp/timecheck-repo
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          echo "$TIME" > timecheck.md
 
           git add timecheck.md
 
@@ -98,13 +113,7 @@ jobs:
           fi
 
           git commit -m "chore: update timecheck"
-
-          # 当前 Workflow 所属仓库
-          git remote set-url origin \
-            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
-
-          # 推回当前 Workflow 所在分支
-          git push origin HEAD:${{ github.ref_name }}     
+          git push origin "$BRANCH"        
 
       - name: 清理历史运行记录
         if: always()
